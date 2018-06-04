@@ -69,7 +69,6 @@ interface token {
 contract TokenSale is Pausable {
     string public name;
     address public beneficiary;                     // In_The_Dream(Company)'s address 
-    // uint public fundingGoal;                     // Not use funding goal
     uint public amountRaised;
     uint public deadline;
     uint public price;
@@ -77,10 +76,8 @@ contract TokenSale is Pausable {
     token public tokenReward;
     mapping(address => uint256) public balanceOf;
     mapping(address => uint8) public whiteList;
-    // bool fundingGoalReached = false;
     bool saleClosed = true;
     
-    // event GoalReached(address recipient, uint totalAmountRaised);
     event FundTransfer(address backer, uint amount, bool isContribution);
     
     /**
@@ -91,14 +88,12 @@ contract TokenSale is Pausable {
     constructor(
         string newName,
         address ifSuccessfulSendTo,
-        // uint fundingGoalInEthers,
         uint durationInMinutes,
         uint newBuyPrice,
         address addressOfTokenUsedAsReward
     ) public {
         name = newName;
         beneficiary = ifSuccessfulSendTo;
-        // fundingGoal = fundingGoalInEthers * 1 ether;
         deadline = now + durationInMinutes * 1 minutes;
         price = newBuyPrice;
         tokenReward = token(addressOfTokenUsedAsReward);
@@ -212,46 +207,12 @@ contract TokenSale is Pausable {
      */
     function closeSale() afterDeadline onlyOwner external {
         require(!saleClosed);
-        // if (amountRaised >= fundingGoal) {
-        //     fundingGoalReached = true;
-        //     emit GoalReached(beneficiary, amountRaised);
-        // }
         if (beneficiary.send(amountRaised)) {
             emit FundTransfer(beneficiary, amountRaised, false);
         }
         withdrawRemainingTokens(beneficiary);
         saleClosed = true;
     }
-
-    /**
-     * Withdraw the funds
-     *
-     * Checks to see if goal or time limit has been reached, and if so, and the funding goal was reached,
-     * sends the entire amount to the beneficiary. If goal was not reached, each contributor can withdraw
-     * the amount they contributed.
-     */
-    // function safeWithdrawal() afterDeadline external {
-    //     if (!fundingGoalReached) {
-    //         uint amount = balanceOf[msg.sender];
-    //         balanceOf[msg.sender] = 0;
-    //         if (amount > 0) {
-    //             if (msg.sender.send(amount)) {
-    //                 emit FundTransfer(msg.sender, amount, false);
-    //             } else {
-    //                 balanceOf[msg.sender] = amount;
-    //             }
-    //         }
-    //     }
-
-    //     if (fundingGoalReached && beneficiary == msg.sender) {
-    //         if (beneficiary.send(amountRaised)) {
-    //             emit FundTransfer(beneficiary, amountRaised, false);
-    //         } else {
-    //             //If we fail to send the funds to beneficiary, unlock funders balance
-    //             fundingGoalReached = false;
-    //         }
-    //     }
-    // }
 
     /**
      * Destroy this contract
