@@ -156,7 +156,6 @@ contract TokenERC20 is Pausable {
      * @param _value the amount to send
      */
     function transfer(address _to, uint256 _value) public noReentrancy {
-        // _transfer(msg.sender, _to, convertToDecimalUnits(_value));
         _transfer(msg.sender, _to, _value);
     }
 
@@ -170,7 +169,6 @@ contract TokenERC20 is Pausable {
      * @param _value the amount to send
      */
     function transferFrom(address _from, address _to, uint256 _value) public noReentrancy returns (bool success) {
-        // uint256 tvalue = convertToDecimalUnits(_value);
         require(_value <= allowance[_from][msg.sender]);     // Check allowance
         allowance[_from][msg.sender] -= _value;
         _transfer(_from, _to, _value);
@@ -186,7 +184,6 @@ contract TokenERC20 is Pausable {
      * @param _value the max amount they can spend
      */
     function approve(address _spender, uint256 _value) public noReentrancy returns (bool success) {
-        // allowance[msg.sender][_spender] = convertToDecimalUnits(_value);
         allowance[msg.sender][_spender] = _value;
         return true;
     }
@@ -216,7 +213,6 @@ contract TokenERC20 is Pausable {
      * @param _value the amount of money to burn
      */
     function burn(uint256 _value) onlyOwner public returns (bool success) {
-        // uint256 bvalue = convertToDecimalUnits(_value);
         require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
         balanceOf[msg.sender] -= _value;            // Subtract from the sender
         totalSupply -= _value;                      // Updates totalSupply
@@ -233,7 +229,6 @@ contract TokenERC20 is Pausable {
      * @param _value the amount of money to burn
      */
     function burnFrom(address _from, uint256 _value) onlyOwner public returns (bool success) {
-        // uint256 bvalue = convertToDecimalUnits(_value);
         require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
         require(_value <= allowance[_from][msg.sender]);    // Check allowance
         balanceOf[_from] -= _value;                         // Subtract from the targeted balance
@@ -252,9 +247,7 @@ contract TokenERC20 is Pausable {
      * @param mintedAmount the amount of tokens it will receive
      */
     function mintToken(address target, uint256 mintedAmount) onlyOwner public {
-        // uint256 mAmount = convertToDecimalUnits(mintedAmount);
         require(totalSupply + mintedAmount >= totalSupply);                 // Check for overflows
-        // require(balanceOf[target] + mintedAmount >= balanceOf[target]);     // Check for overflows
         balanceOf[target] += mintedAmount;
         totalSupply += mintedAmount;
         emit Transfer(0, address(this), mintedAmount);
@@ -279,18 +272,9 @@ contract TokenERC20 is Pausable {
      */
     function buy() payable public noReentrancy returns (uint256 amount) {
         amount = msg.value * buyPrice;                                          // calculates the amount
-        // _transfer(address(this), msg.sender, convertToDecimalUnits(amount));    // makes the transfers
         _transfer(address(this), msg.sender, amount);    // makes the transfers
         return amount;
     }
-    
-    /**
-     * @notice Fallback function to buy tokens
-     * @notice Let's use this function in ICO smart contract
-     */
-    // function() payable external {
-    //     buy();
-    // }
     
     /**
      * @notice Sell `amount` tokens to contract
@@ -300,7 +284,6 @@ contract TokenERC20 is Pausable {
     function sell(uint256 amount) public noReentrancy returns (uint256 revenue) {
         revenue = amount / sellPrice;
         require(address(this).balance >= revenue);                              // checks if the contract has enough ether to buy
-        // _transfer(msg.sender, address(this), convertToDecimalUnits(amount));    // makes the transfers
         _transfer(msg.sender, address(this), amount);    // makes the transfers
         // sends ether to the seller. It's important to do this last to avoid recursion attacks
         msg.sender.transfer(revenue);
