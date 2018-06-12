@@ -59,8 +59,9 @@ contract Pausable is Ownable {
 interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) external; }
 
 /**
- * NemoLab ERC20 Token 12 
+ * NemoLab ERC20 Token
  * Written by Shin HyunJae
+ * version 12
  */
 contract TokenERC20 is Pausable {
     // Public variables of the token
@@ -71,8 +72,6 @@ contract TokenERC20 is Pausable {
 
     uint256 public sellPrice;
     uint256 public buyPrice;
-    
-    string constant public terms = "인코디움 약관 201805231506";
     
     /* This creates an array with all balances */
     mapping (address => uint256) public balanceOf;
@@ -200,7 +199,7 @@ contract TokenERC20 is Pausable {
     function approveAndCall(address _spender, uint256 _value, bytes _extraData) public noReentrancy returns (bool success) {
         tokenRecipient spender = tokenRecipient(_spender);
         if (approve(_spender, _value)) {
-            spender.receiveApproval(msg.sender, _value, address(this), _extraData);
+            spender.receiveApproval(msg.sender, _value, this, _extraData);
             return true;
         }
     }
@@ -250,8 +249,22 @@ contract TokenERC20 is Pausable {
         require(totalSupply + mintedAmount >= totalSupply);                 // Check for overflows
         balanceOf[target] += mintedAmount;
         totalSupply += mintedAmount;
-        emit Transfer(0, address(this), mintedAmount);
-        emit Transfer(address(this), target, mintedAmount);
+        emit Transfer(0, this, mintedAmount);
+        emit Transfer(this, target, mintedAmount);
+    }
+    
+    /// @notice `freeze? Prevent` `target` from sending & receiving tokens
+    /// @param target Address to be frozen
+    function freezeAccount(address target) onlyOwner public {
+        frozenAccount[target] = true;
+        emit FrozenFunds(target, true);
+    }
+
+    /// @notice `freeze? Allow` `target` from sending & receiving tokens
+    /// @param target Address to be unfrozen
+    function unfreezeAccount(address target) onlyOwner public {
+        frozenAccount[target] = false;
+        emit FrozenFunds(target, false);
     }
 
     /**
@@ -272,7 +285,7 @@ contract TokenERC20 is Pausable {
      */
     function buy() payable public noReentrancy returns (uint256 amount) {
         amount = msg.value * buyPrice;                                          // calculates the amount
-        _transfer(address(this), msg.sender, amount);    // makes the transfers
+        _transfer(this, msg.sender, amount);    // makes the transfers
         return amount;
     }
     
@@ -284,7 +297,7 @@ contract TokenERC20 is Pausable {
     function sell(uint256 amount) public noReentrancy returns (uint256 revenue) {
         revenue = amount / sellPrice;
         require(address(this).balance >= revenue);                              // checks if the contract has enough ether to buy
-        _transfer(msg.sender, address(this), amount);    // makes the transfers
+        _transfer(msg.sender, this, amount);    // makes the transfers
         // sends ether to the seller. It's important to do this last to avoid recursion attacks
         msg.sender.transfer(revenue);
         return revenue;
