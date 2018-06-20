@@ -1,5 +1,7 @@
 pragma solidity ^0.4.21;
 
+import "./SafeMath.sol";
+
 contract Ownable {
     address internal owner;
 
@@ -57,7 +59,8 @@ contract Pausable is Ownable {
 }
 
 interface token {
-    function getBalance(address _account) external view returns (uint256 balance);
+    function decimals() external view returns (uint8);
+    function balanceOf(address _account) external view returns (uint256 balance);
     function transfer(address receiver, uint amount) external;
 }
 
@@ -67,10 +70,12 @@ interface token {
  * version 2
  */
 contract SafeDeposit is Pausable {
-    string public name;
+    using SafeMath for uint256;
+    
     uint public endOfPeriod;
     mapping(address => uint256) public holdingBalanceOf;
     token public tokenReward;
+    uint8 public decimals = 18;
     
     event Withdraw(address recipient, uint amount);
     
@@ -80,17 +85,16 @@ contract SafeDeposit is Pausable {
      * Setup the owner
      */
     constructor(
-        string newName,
         address addressOfTokenUsedAsReward
     ) public {
-        name = newName;
         tokenReward = token(addressOfTokenUsedAsReward);
         endOfPeriod = (24 * 60 * 365 * 1 minutes) + now;    // 1 year
+        decimals = tokenReward.decimals();
         
         // Secured address list
-        holdingBalanceOf[0xf8D086f16BaC2c49Ffb291FaDf9FBa4B618C25E2] = 5000 * 10 ** 18;
-        holdingBalanceOf[0xCE5046248FdcC325164bd98A26715d9E9B573825] = 2000 * 10 ** 18;
-        holdingBalanceOf[0x970397fF7AdDEFA7c639777e3dF105f7ee3F11D7] = 2000 * 10 ** 18;
+        holdingBalanceOf[0xf8D086f16BaC2c49Ffb291FaDf9FBa4B618C25E2] = uint(5000).mul(10 ** uint(decimals));
+        holdingBalanceOf[0xCE5046248FdcC325164bd98A26715d9E9B573825] = uint(2000).mul(10 ** uint(decimals));
+        holdingBalanceOf[0x970397fF7AdDEFA7c639777e3dF105f7ee3F11D7] = uint(2000).mul(10 ** uint(decimals));
     }
 
     modifier afterDeadline() { require(now >= endOfPeriod); _; }
@@ -114,7 +118,7 @@ contract SafeDeposit is Pausable {
      * Checks if the goal or time limit has been reached and ends the campaign
      */
     function withdrawRemainingTokens(address _recipient) onlyOwner public {
-        uint256 tokenBalance = tokenReward.getBalance(address(this));
+        uint256 tokenBalance = tokenReward.balanceOf(this);
         if (tokenBalance > 0) tokenReward.transfer(_recipient, tokenBalance);
     }
 
@@ -122,6 +126,7 @@ contract SafeDeposit is Pausable {
      * Destroy this contract
      *
      * @notice Remove this contract from the system irreversibly and send remain funds to owner account
+     * @notice 정식 배포시 삭제예정
      */
     function destroy() external onlyOwner {
         destroyAndSend(owner);
@@ -131,11 +136,12 @@ contract SafeDeposit is Pausable {
      * Destroy this contract
      *
      * @notice Remove this contract from the system irreversibly and send remain funds to _recipient account
+     * @notice 정식 배포시 삭제예정
      * 
      * @param _recipient Address to receive the funds
      */
     function destroyAndSend(address _recipient) public onlyOwner {
-        uint256 tokenBalance = tokenReward.getBalance(address(this));
+        uint256 tokenBalance = tokenReward.balanceOf(this);
         require(tokenBalance == 0); // Check if this contract have remaining tokens
         selfdestruct(_recipient);
     }
