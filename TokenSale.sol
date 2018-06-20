@@ -1,5 +1,7 @@
 pragma solidity ^0.4.21;
 
+import "./SafeMath.sol";
+
 contract Ownable {
     address internal owner;
 
@@ -57,7 +59,7 @@ contract Pausable is Ownable {
 }
 
 interface token {
-    function getBalance(address _account) external view returns (uint256 balance);
+    function balanceOf(address _account) external view returns (uint256 balance);
     function transfer(address receiver, uint amount) external;
 }
 
@@ -67,12 +69,14 @@ interface token {
  * version 19
  */
 contract TokenSale is Pausable {
-    string public name;
+    using SafeMath for uint256;
+    
     address public beneficiary;                     // In_The_Dream(Company)'s address 
     uint public amountRaised;
     uint public deadline;
     uint public price;
     uint public bottomLimitForFund = 0.5 * 1 ether; // The Bottom Limit for each funding
+    uint public maxCap = 200 * 1 ether;             // Maximum Cap Limit for each funder
     token public tokenReward;
     mapping(address => uint256) public balanceOf;
     mapping(address => uint8) public whiteList;
@@ -86,16 +90,16 @@ contract TokenSale is Pausable {
      * Setup the owner
      */
     constructor(
-        string newName,
         address ifSuccessfulSendTo,
         uint durationInMinutes,
         uint newBuyPrice,
+        uint newMaxCapInEthers,
         address addressOfTokenUsedAsReward
     ) public {
-        name = newName;
         beneficiary = ifSuccessfulSendTo;
         deadline = now + durationInMinutes * 1 minutes;
         price = newBuyPrice;
+        maxCap = newMaxCapInEthers.mul(1 ether);
         tokenReward = token(addressOfTokenUsedAsReward);
     }
     
@@ -106,11 +110,11 @@ contract TokenSale is Pausable {
      */
     function openSale(uint256 _valueForIcoTokens) external onlyOwner {
         require(saleClosed);
-        uint256 tokenBalance = tokenReward.getBalance(address(this));
+        uint256 tokenBalance = tokenReward.balanceOf(this);
         require(tokenBalance > 0 && _valueForIcoTokens > 0);
-        require(tokenBalance > _valueForIcoTokens);
+        require(tokenBalance >= _valueForIcoTokens);
 
-        tokenReward.transfer(beneficiary, (tokenBalance - _valueForIcoTokens));
+        if (tokenBalance.sub(_valueForIcoTokens) > 0) tokenReward.transfer(beneficiary, tokenBalance.sub(_valueForIcoTokens));
         saleClosed = false; // open this sale
     }
     
@@ -170,11 +174,13 @@ contract TokenSale is Pausable {
         require(msg.value >= bottomLimitForFund);
         // Check the white List of the funder
         require(whiteList[msg.sender] > 0);
+        // Check the maximum cap for each funder
+        require(maxCap >= balanceOf[msg.sender].add(amount));
         
         uint amount = msg.value;
-        balanceOf[msg.sender] += amount;
-        amountRaised += amount;
-        tokenReward.transfer(msg.sender, amount * price);
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
+        amountRaised = amountRaised.add(amount);
+        tokenReward.transfer(msg.sender, amount.mul(price));
         emit FundTransfer(msg.sender, amount, true);
     }
     
@@ -196,7 +202,7 @@ contract TokenSale is Pausable {
      * Checks if the goal or time limit has been reached and ends the campaign
      */
     function withdrawRemainingTokens(address _recipient) onlyOwner public {
-        uint256 tokenBalance = tokenReward.getBalance(address(this));
+        uint256 tokenBalance = tokenReward.balanceOf(this);
         if (tokenBalance > 0) tokenReward.transfer(_recipient, tokenBalance);
     }
 
@@ -218,6 +224,7 @@ contract TokenSale is Pausable {
      * Destroy this contract
      *
      * @notice Remove this contract from the system irreversibly and send remain funds to owner account
+     * @notice 정식 배포시 삭제예정
      */
     function destroy() external onlyOwner {
         destroyAndSend(owner);
@@ -227,11 +234,12 @@ contract TokenSale is Pausable {
      * Destroy this contract
      *
      * @notice Remove this contract from the system irreversibly and send remain funds to _recipient account
+     * @notice 정식 배포시 삭제예정
      * 
      * @param _recipient Address to receive the funds
      */
     function destroyAndSend(address _recipient) public onlyOwner {
-        uint256 tokenBalance = tokenReward.getBalance(address(this));
+        uint256 tokenBalance = tokenReward.balanceOf(this);
         require(tokenBalance == 0); // Check if this contract have remaining tokens
         selfdestruct(_recipient);
     }
