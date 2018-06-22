@@ -99,10 +99,9 @@ contract TokenERC20 is Pausable {
      *
      * Initializes contract with initial supply tokens to the creator of the contract
      */
-    constructor(string tokenName, string tokenSymbol, uint256 initialSupply, uint8 decimalUnits) public {
+    constructor(string tokenName, string tokenSymbol, uint256 initialSupply) public {
         name = tokenName;                                       // Set the name for display purposes
         symbol = tokenSymbol;                                   // Set the symbol for display purposes
-        if (decimalUnits > 0) decimals = decimalUnits;
         totalSupply = convertToDecimalUnits(initialSupply);     // Update total supply with the decimal amount
         balances[msg.sender] = totalSupply;                     // Give the creator all initial tokens
     }
@@ -145,12 +144,12 @@ contract TokenERC20 is Pausable {
     /**
      * Internal transfer, only can be called by this contract
      */
-    function _transfer(address _from, address _to, uint _value) internal {
+    function _transfer(address _from, address _to, uint256 _value) internal {
         require(_to != 0x0);                                            // Prevent transfer to 0x0 address. Use burn() instead
         require(balances[_from] >= _value);                             // Check if the sender has enough
         require(!frozenAccount[_from]);                                 // Check if sender is frozen
         require(!frozenAccount[_to]);                                   // Check if recipient is frozen
-        uint previousBalances = balances[_from].add(balances[_to]);     // Save this for an assertion in the future
+        uint256 previousBalances = balances[_from].add(balances[_to]);     // Save this for an assertion in the future
         
         balances[_from] = balances[_from].sub(_value);                  // Subtract from the sender
         balances[_to] = balances[_to].add(_value);                      // Add the same to the recipient
@@ -187,7 +186,8 @@ contract TokenERC20 is Pausable {
         require(_value <= allowed[_from][msg.sender]);     // Check allowance
         allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
         _transfer(_from, _to, _value);
-        return true;
+        success = true;
+        return success;
     }
 
     /**
@@ -201,7 +201,8 @@ contract TokenERC20 is Pausable {
     function approve(address _spender, uint256 _value) public noReentrancy returns (bool success) {
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
-        return true;
+        success = true;
+        return success;
     }
 
     /**
@@ -217,7 +218,8 @@ contract TokenERC20 is Pausable {
         tokenRecipient spender = tokenRecipient(_spender);
         if (approve(_spender, _value)) {
             spender.receiveApproval(msg.sender, _value, this, _extraData);
-            return true;
+            success = true;
+            return success;
         }
     }
 
@@ -233,7 +235,8 @@ contract TokenERC20 is Pausable {
         balances[msg.sender] = balances[msg.sender].sub(_value);            // Subtract from the sender
         totalSupply = totalSupply.sub(_value);                              // Updates totalSupply
         emit Burn(msg.sender, _value);
-        return true;
+        success = true;
+        return success;
     }
 
     /**
@@ -251,7 +254,8 @@ contract TokenERC20 is Pausable {
         allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);        // Subtract from the sender's allowance
         totalSupply = totalSupply.sub(_value);                                      // Update totalSupply
         emit Burn(_from, _value);
-        return true;
+        success = true;
+        return success;
     }
     
     /** 
@@ -282,7 +286,7 @@ contract TokenERC20 is Pausable {
         frozenAccount[target] = false;
         emit FrozenFunds(target, false);
     }
-    
+
     /**
      * Destroy this contract
      *
