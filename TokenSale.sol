@@ -60,7 +60,7 @@ contract Pausable is Ownable {
 
 interface token {
     function balanceOf(address _account) external view returns (uint256 balance);
-    function transfer(address receiver, uint amount) external;
+    function transfer(address receiver, uint256 amount) external;
 }
 
 /**
@@ -71,18 +71,18 @@ interface token {
 contract TokenSale is Pausable {
     using SafeMath for uint256;
     
-    address public beneficiary;                     // In_The_Dream(Company)'s address 
-    uint public amountRaised;
-    uint public deadline;
-    uint public price;
-    uint public bottomLimitForFund = 0.5 * 1 ether; // The Bottom Limit for each funding
-    uint public maxCap = 200 * 1 ether;             // Maximum Cap Limit for each funder
+    address public beneficiary;                         // In_The_Dream(Company)'s address 
+    uint256 public amountRaised;
+    uint256 public deadline;
+    uint256 public price;
+    uint256 public bottomLimitForFund = 0.5 * 1 ether;  // The Bottom Limit for each funding
+    uint256 public maxCap = 200 * 1 ether;              // Maximum Cap Limit for each funder
     token public tokenReward;
     mapping(address => uint256) public balanceOf;
     mapping(address => uint8) public whiteList;
     bool saleClosed = true;
     
-    event FundTransfer(address backer, uint amount, bool isContribution);
+    event FundTransfer(address backer, uint256 amount, bool isContribution);
     
     /**
      * Constructor function
@@ -91,9 +91,9 @@ contract TokenSale is Pausable {
      */
     constructor(
         address ifSuccessfulSendTo,
-        uint durationInMinutes,
-        uint newBuyPrice,
-        uint newMaxCapInEthers,
+        uint256 durationInMinutes,
+        uint256 newBuyPrice,
+        uint256 newMaxCapInEthers,
         address addressOfTokenUsedAsReward
     ) public {
         beneficiary = ifSuccessfulSendTo;
@@ -170,6 +170,8 @@ contract TokenSale is Pausable {
      * The function without name is the default function that is called whenever anyone sends funds to a contract
      */
     function () payable external {
+        uint256 amount = msg.value;
+
         require(!saleClosed);
         require(msg.value >= bottomLimitForFund);
         // Check the white List of the funder
@@ -177,7 +179,6 @@ contract TokenSale is Pausable {
         // Check the maximum cap for each funder
         require(maxCap >= balanceOf[msg.sender].add(amount));
         
-        uint amount = msg.value;
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
         amountRaised = amountRaised.add(amount);
         tokenReward.transfer(msg.sender, amount.mul(price));
