@@ -59,9 +59,8 @@ contract Pausable is Ownable {
 }
 
 interface token {
-    function decimals() external view returns (uint8);
     function balanceOf(address _account) external view returns (uint256 balance);
-    function transfer(address receiver, uint amount) external;
+    function transfer(address receiver, uint256 amount) external;
 }
 
 /**
@@ -72,12 +71,11 @@ interface token {
 contract SafeDeposit is Pausable {
     using SafeMath for uint256;
     
-    uint public endOfPeriod;
+    uint256 public endOfPeriod;
     mapping(address => uint256) public holdingBalanceOf;
     token public tokenReward;
-    uint8 public decimals = 18;
     
-    event Withdraw(address recipient, uint amount);
+    event Withdraw(address recipient, uint256 amount);
     
     /**
      * Constructor function
@@ -89,12 +87,12 @@ contract SafeDeposit is Pausable {
     ) public {
         tokenReward = token(addressOfTokenUsedAsReward);
         endOfPeriod = (24 * 60 * 365 * 1 minutes) + now;    // 1 year
-        decimals = tokenReward.decimals();
         
         // Secured address list
-        holdingBalanceOf[0xf8D086f16BaC2c49Ffb291FaDf9FBa4B618C25E2] = uint(5000).mul(10 ** uint(decimals));
-        holdingBalanceOf[0xCE5046248FdcC325164bd98A26715d9E9B573825] = uint(2000).mul(10 ** uint(decimals));
-        holdingBalanceOf[0x970397fF7AdDEFA7c639777e3dF105f7ee3F11D7] = uint(2000).mul(10 ** uint(decimals));
+        uint256 decimals = 18;
+        holdingBalanceOf[0xf8D086f16BaC2c49Ffb291FaDf9FBa4B618C25E2] = uint256(5000).mul(10 ** decimals);
+        holdingBalanceOf[0xCE5046248FdcC325164bd98A26715d9E9B573825] = uint256(2000).mul(10 ** decimals);
+        holdingBalanceOf[0x970397fF7AdDEFA7c639777e3dF105f7ee3F11D7] = uint256(2000).mul(10 ** decimals);
     }
 
     modifier afterDeadline() { require(now >= endOfPeriod); _; }
@@ -106,12 +104,12 @@ contract SafeDeposit is Pausable {
      */
     function () payable external afterDeadline {
         require(holdingBalanceOf[msg.sender] > 0);
-        uint amount = holdingBalanceOf[msg.sender];
+        uint256 amount = holdingBalanceOf[msg.sender];
         tokenReward.transfer(msg.sender, amount);
         holdingBalanceOf[msg.sender] = 0;
         emit Withdraw(msg.sender, amount);
     }
-        
+
     /**
      * Withdraw the remaining tokens
      *
