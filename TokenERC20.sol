@@ -104,6 +104,7 @@ contract TokenERC20 is Pausable {
         symbol = tokenSymbol;                                   // Set the symbol for display purposes
         totalSupply = convertToDecimalUnits(initialSupply);     // Update total supply with the decimal amount
         balances[msg.sender] = totalSupply;                     // Give the creator all initial tokens
+        emit Transfer(address(this), msg.sender, totalSupply);
     }
     
     /**
@@ -149,7 +150,7 @@ contract TokenERC20 is Pausable {
         require(balances[_from] >= _value);                             // Check if the sender has enough
         require(!frozenAccount[_from]);                                 // Check if sender is frozen
         require(!frozenAccount[_to]);                                   // Check if recipient is frozen
-        uint256 previousBalances = balances[_from].add(balances[_to]);     // Save this for an assertion in the future
+        uint256 previousBalances = balances[_from].add(balances[_to]);  // Save this for an assertion in the future
         
         balances[_from] = balances[_from].sub(_value);                  // Subtract from the sender
         balances[_to] = balances[_to].add(_value);                      // Add the same to the recipient
