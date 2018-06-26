@@ -171,21 +171,24 @@ contract TokenSale is Pausable {
      */
     function () payable external {
         uint256 amount = msg.value;
-
+        uint256 tokens = amount.mul(price);     // reward tokens
+        
         require(!saleClosed);
         require(msg.value >= bottomLimitForFund);
         // Check the white List of the funder
         require(whiteList[msg.sender] > 0);
         // Check the maximum cap for each funder
         require(maxCap >= balanceOf[msg.sender].add(amount));
+        // Check the tokens balance of this contract for the reward tokens of funding
+        require(tokenReward.balanceOf(this) >= tokens);
         
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
         amountRaised = amountRaised.add(amount);
-        tokenReward.transfer(msg.sender, amount.mul(price));
+        tokenReward.transfer(msg.sender, tokens);
         emit FundTransfer(msg.sender, amount, true);
     }
     
-    modifier afterDeadline() { if (now >= deadline) _; }
+    modifier afterDeadline() { require(now >= deadline); _; }
     
     /**
      * Get remaining time
@@ -212,7 +215,7 @@ contract TokenSale is Pausable {
      *
      * Checks if the time limit has been reached and ends the campaign
      */
-    function closeSale() afterDeadline onlyOwner external {
+    function closeSale() onlyOwner afterDeadline external {
         require(!saleClosed);
         if (beneficiary.send(amountRaised)) {
             emit FundTransfer(beneficiary, amountRaised, false);
