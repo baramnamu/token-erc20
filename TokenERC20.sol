@@ -192,6 +192,19 @@ contract TokenERC20 is Pausable {
     }
 
     /**
+     * Internal approve, only can be called by this contract
+     *
+     * @param _spender The address authorized to spend
+     * @param _value the max amount they can spend
+     */
+    function _approve(address _spender, uint256 _value) internal returns (bool success) {
+        allowed[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
+        success = true;
+        return success;
+    }
+
+    /**
      * Set allowance for other address
      *
      * Allows `_spender` to spend no more than `_value` tokens on your behalf
@@ -200,9 +213,7 @@ contract TokenERC20 is Pausable {
      * @param _value the max amount they can spend
      */
     function approve(address _spender, uint256 _value) public noReentrancy returns (bool success) {
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        success = true;
+        success = _approve(_spender, _value);
         return success;
     }
 
@@ -217,7 +228,7 @@ contract TokenERC20 is Pausable {
      */
     function approveAndCall(address _spender, uint256 _value, bytes _extraData) public noReentrancy returns (bool success) {
         tokenRecipient spender = tokenRecipient(_spender);
-        if (approve(_spender, _value)) {
+        if (_approve(_spender, _value)) {
             spender.receiveApproval(msg.sender, _value, this, _extraData);
             success = true;
             return success;
