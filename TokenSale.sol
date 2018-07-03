@@ -47,15 +47,15 @@ contract Pausable is Ownable {
     /* When you discover your smart contract is under attack, you can buy time to upgrade the contract by 
        immediately pausing the contract.
      */   
-    function pause() public onlyOwner whenNotPaused {
-        paused = true;
-        emit Pause();
-    }
+    // function pause() public onlyOwner whenNotPaused {
+    //     paused = true;
+    //     emit Pause();
+    // }
 
-    function unpause() public onlyOwner whenPaused {
-        paused = false;
-        emit Unpause();
-    }
+    // function unpause() public onlyOwner whenPaused {
+    //     paused = false;
+    //     emit Unpause();
+    // }
 }
 
 interface token {
@@ -203,11 +203,24 @@ contract TokenSale is Pausable {
     /**
      * Withdraw the remaining tokens
      *
-     * Checks if the goal or time limit has been reached and ends the campaign
+     * @notice Withdraw the remaining tokens from this contract to _recipient.
      */
     function withdrawRemainingTokens(address _recipient) onlyOwner public {
         uint256 tokenBalance = tokenReward.balanceOf(this);
         if (tokenBalance > 0) tokenReward.transfer(_recipient, tokenBalance);
+    }
+
+    /**
+     * Withdraw the remaining ether
+     *
+     * @notice Withdraw the remaining ether from this contract to _recipient.
+     */
+    function withdrawRemainingEther(address _recipient) onlyOwner public {
+        uint256 remainingBalance = address(this).balance;
+        require(remainingBalance > 0);
+        if (_recipient.send(remainingBalance)) {
+            emit FundTransfer(_recipient, remainingBalance, false);
+        }
     }
 
     /**
@@ -217,8 +230,9 @@ contract TokenSale is Pausable {
      */
     function closeSale() onlyOwner afterDeadline external {
         require(!saleClosed);
-        if (beneficiary.send(amountRaised)) {
-            emit FundTransfer(beneficiary, amountRaised, false);
+        uint256 sendAmount = address(this).balance;
+        if (beneficiary.send(sendAmount)) {
+            emit FundTransfer(beneficiary, sendAmount, false);
         }
         withdrawRemainingTokens(beneficiary);
         saleClosed = true;
