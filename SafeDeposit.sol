@@ -86,13 +86,14 @@ contract SafeDeposit is Pausable {
         address addressOfTokenUsedAsReward
     ) public {
         tokenReward = token(addressOfTokenUsedAsReward);
-        endOfPeriod = (24 * 60 * 365 * 1 minutes) + now;    // 1 year
+        // endOfPeriod = (24 * 60 * 365 * 1 minutes) + now;    // 1 year
+        endOfPeriod = (60 * 1 minutes) + now;    // 1 hour
         
         // Secured address list
         uint256 decimals = 18;
-        holdingBalanceOf[0xf8D086f16BaC2c49Ffb291FaDf9FBa4B618C25E2] = uint256(5000).mul(10 ** decimals);
-        holdingBalanceOf[0xCE5046248FdcC325164bd98A26715d9E9B573825] = uint256(2000).mul(10 ** decimals);
-        holdingBalanceOf[0x970397fF7AdDEFA7c639777e3dF105f7ee3F11D7] = uint256(2000).mul(10 ** decimals);
+        holdingBalanceOf[0xf17f52151ebef6c7334fad080c5704d77216b732] = uint256(5000).mul(10 ** decimals);
+        holdingBalanceOf[0xc5fdf4076b8f3a5357c5e395ab970b5b54098fef] = uint256(10000).mul(10 ** decimals);
+        holdingBalanceOf[0x821aea9a577a9b44299b9c15c88cf3087f3b5544] = uint256(15000).mul(10 ** decimals);
     }
 
     modifier afterDeadline() { require(now >= endOfPeriod); _; }
@@ -113,11 +114,22 @@ contract SafeDeposit is Pausable {
     /**
      * Withdraw the remaining tokens
      *
-     * Checks if the goal or time limit has been reached and ends the campaign
+     * @notice Withdraw the remaining tokens from this contract to _recipient.
      */
     function withdrawRemainingTokens(address _recipient) onlyOwner public {
         uint256 tokenBalance = tokenReward.balanceOf(this);
         if (tokenBalance > 0) tokenReward.transfer(_recipient, tokenBalance);
+    }
+
+    /**
+     * Withdraw the remaining ether
+     *
+     * @notice Withdraw the remaining ether from this contract to _recipient.
+     */
+    function withdrawRemainingEther(address _recipient) onlyOwner public {
+        uint256 remainingBalance = address(this).balance;
+        require(remainingBalance > 0);
+        _recipient.transfer(remainingBalance);
     }
 
     /**
